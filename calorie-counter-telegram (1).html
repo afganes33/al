@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Счётчик калорий</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF2F7;--card:#fff;--ink:#101828;--mute:#667085;--line:#D9E0EA;--acc:#4B3FE0;--accsoft:#E6E4FB;--over:#E5484D;--p:#2E90FA;--f:#F5A524;--c:#12B76A;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1220;--card:#171C2E;--ink:#EEF1F8;--mute:#98A2B8;--line:#2A3150;--acc:#8B83FF;--accsoft:#262358;--over:#FF6B6F}}
+:root[data-theme="dark"]{--bg:#0E1220;--card:#171C2E;--ink:#EEF1F8;--mute:#98A2B8;--line:#2A3150;--acc:#8B83FF;--accsoft:#262358;--over:#FF6B6F}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+.card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px}
+.top{display:flex;justify-content:space-between;align-items:baseline;color:var(--mute);font-size:14px}
+.big{font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.big.over{color:var(--over)}
+.sub{color:var(--mute);font-size:14px}
+.bar{height:14px;border-radius:7px;background:var(--accsoft);overflow:hidden;margin:14px 0}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:7px;transition:width .35s}
+.bar.over i{background:var(--over)}
+.goal{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute)}
+.goal input{width:86px;padding:6px 8px;text-align:right}
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.m{border-left:4px solid;padding-left:10px}
+.m b{display:block;font-size:20px;font-weight:800}
+.m span{font-size:13px;color:var(--mute)}
+h2{font-size:17px;font-weight:800;margin:0 0 12px}
+input,button{font:inherit;color:var(--ink)}
+input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);font-size:16px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);padding:4px;border-radius:14px;margin-bottom:12px}
+.seg button{border:0;background:none;padding:9px 2px;border-radius:10px;font-size:14px;font-weight:700;color:var(--mute);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.18)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.row label{margin-top:0}
+.calc{margin:12px 0 0;font-weight:700;min-height:22px}
+.add{width:100%;margin-top:10px;padding:14px;border:0;border-radius:14px;background:var(--acc);color:var(--onacc,#fff);font-weight:800;cursor:pointer}
+.meal h3{display:flex;justify-content:space-between;font-size:15px;margin:16px 0 4px}
+.meal h3 span{color:var(--mute);font-weight:700}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.item div{flex:1;min-width:0}
+.item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item small{color:var(--mute)}
+.item em{font-style:normal;font-weight:800}
+.del{border:0;background:none;color:var(--mute);font-size:22px;line-height:1;padding:6px 8px;cursor:pointer;border-radius:8px}
+.empty{color:var(--mute);font-size:14px;padding:6px 0}
+.link{border:0;background:none;color:var(--mute);text-decoration:underline;font-size:13px;cursor:pointer;padding:0}
+select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);font:inherit;font-size:16px;color:var(--ink)}
+summary{font-size:17px;font-weight:800;cursor:pointer}
+details[open] summary{margin-bottom:6px}
+.fb{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;margin-top:8px;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg);cursor:pointer}
+.fb small{display:block;color:var(--mute);font-weight:500;font-size:13px}
+.fb b{font-size:20px;font-weight:800;color:var(--acc);white-space:nowrap}
+.note{font-size:13px;color:var(--mute);margin:10px 0 0}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+  <section class="card" aria-live="polite">
+    <div class="top"><span id="date"></span><span class="goal"><label for="goal" style="margin:0">Цель, ккал</label><input id="goal" type="number" inputmode="numeric" min="500" max="10000" step="50"></span></div>
+    <div class="big" id="rem"></div>
+    <div class="sub" id="remlbl"></div>
+    <div class="bar" id="bar"><i id="fill"></i></div>
+    <div class="sub" id="eaten"></div>
+    <div class="macros">
+      <div class="m" style="border-color:var(--p)"><b id="mp">0</b><span>белки, г</span></div>
+      <div class="m" style="border-color:var(--f)"><b id="mf">0</b><span>жиры, г</span></div>
+      <div class="m" style="border-color:var(--c)"><b id="mc">0</b><span>углеводы, г</span></div>
+    </div>
+  </section>
+
+  <details class="card" id="calcCard">
+    <summary>Рассчитать норму калорий</summary>
+    <div class="row">
+      <div><label for="sex">Пол</label><select id="sex"><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+      <div><label for="age">Возраст, лет</label><input id="age" type="number" inputmode="numeric" min="18" max="90" placeholder="30"></div>
+      <div><label for="hh">Рост, см</label><input id="hh" type="number" inputmode="decimal" min="120" max="230" placeholder="175"></div>
+      <div><label for="ww">Вес, кг</label><input id="ww" type="number" inputmode="decimal" min="35" max="250" placeholder="70"></div>
+    </div>
+    <label for="bf">Процент жира, % (необязательно, нужен для формулы Кэтча — Макардла)</label>
+    <input id="bf" type="number" inputmode="decimal" min="3" max="60" placeholder="—">
+    <label for="act">Активность</label>
+    <select id="act">
+      <option value="1.2">Сидячий образ жизни</option>
+      <option value="1.375">Лёгкая: 1–3 тренировки в неделю</option>
+      <option value="1.55" selected>Средняя: 3–5 тренировок в неделю</option>
+      <option value="1.725">Высокая: 6–7 тренировок в неделю</option>
+      <option value="1.9">Очень высокая: физический труд и спорт</option>
+    </select>
+    <label for="gl">Цель</label>
+    <select id="gl">
+      <option value="0.85">Похудеть (−15%)</option>
+      <option value="1" selected>Удерживать вес</option>
+      <option value="1.1">Набрать вес (+10%)</option>
+    </select>
+    <div id="fres" aria-live="polite"></div>
+    <p class="note">Нажмите на формулу, чтобы сделать её результат дневной целью. Расчёты ориентировочные и подходят для взрослых; нижняя граница цели — 1200 ккал. При заболеваниях и беременности обратитесь к врачу.</p>
+  </details>
+
+  <section class="card">
+    <h2>Добавить еду</h2>
+    <div class="seg" id="seg" role="group" aria-label="Приём пищи"></div>
+    <label for="name">Продукт</label>
+    <input id="name" list="foods" placeholder="Начните вводить: гречка, яблоко…" autocomplete="off">
+    <datalist id="foods"></datalist>
+    <div class="row">
+      <div><label for="grams">Вес, г</label><input id="grams" type="number" inputmode="decimal" min="1" placeholder="100"></div>
+      <div><label for="k100">Ккал на 100 г</label><input id="k100" type="number" inputmode="decimal" min="0" placeholder="—"></div>
+    </div>
+    <p class="calc" id="calc"></p>
+    <button class="add" id="addBtn">Добавить в дневник</button>
+    <p class="note">Нет продукта в списке? Найдите его в открытых базах — <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener">USDA FoodData Central</a>, <a href="https://ru.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a> (есть поиск по штрихкоду) или <a href="https://calorizator.ru/product/all" target="_blank" rel="noopener">Calorizator.ru</a> — и впишите «ккал на 100 г». Приложение запомнит продукт, и в следующий раз он появится в подсказках. Значения в списке — типичные справочные, у конкретных брендов они могут отличаться.</p>
+  </section>
+
+  <section class="card">
+    <h2>Дневник за сегодня</h2>
+    <div id="log"></div>
+  </section>
+  <p style="text-align:center"><button class="link" id="reset">Очистить дневник за сегодня</button></p>
+</main>
+
+<script>
+const DB=[["Яблоко",52,.3,.2,14],["Банан",89,1.1,.3,23],["Куриная грудка",165,31,3.6,0],["Яйцо варёное",155,13,11,1.1],["Рис варёный",130,2.7,.3,28],["Гречка варёная",110,4,1.1,21],["Овсянка на воде",88,3,1.7,15],["Хлеб белый",265,9,3.2,49],["Творог 5%",121,17,5,1.8],["Молоко 2,5%",52,2.8,2.5,4.7],["Сыр твёрдый",350,25,27,0],["Картофель варёный",87,1.9,.1,20],["Макароны варёные",158,5.8,.9,31],["Говядина тушёная",232,25,14,0],["Лосось",208,20,13,0],["Огурец",15,.8,.1,3],["Помидор",18,.9,.2,3.9],["Йогурт натуральный",60,4,3,4.7],["Шоколад молочный",535,7,30,59],["Сливочное масло",717,.9,81,.1],["Оливковое масло",884,0,100,0],["Пельмени",275,12,12,29],["Пицца",266,11,10,33],["Миндаль",579,21,50,22]];
+DB.push(["Груша",57,.4,.3,15],["Апельсин",43,.9,.2,8.1],["Виноград",65,.6,.2,16],["Клубника",33,.8,.4,7.7],["Арбуз",30,.6,.1,7.6],["Персик",46,.9,.1,11],["Авокадо",160,2,15,9],["Морковь",35,1.3,.1,7],["Капуста белокочанная",27,1.8,.1,4.7],["Брокколи",34,2.8,.4,6.6],["Лук репчатый",41,1.4,0,10],["Свёкла варёная",49,1.8,.1,10],["Кабачок",24,.6,.3,4.6],["Перец сладкий",27,1.3,0,5.3],["Грудка индейки",111,23,1.5,0],["Тунец в собственном соку",96,22,1,0],["Треска",69,16,.6,0],["Креветки",87,18,1.1,0],["Кефир 1%",40,3,1,4],["Сметана 20%",206,2.8,20,3.2],["Моцарелла",240,18,17,2],["Колбаса варёная",257,13,23,1.5],["Сосиски",266,11,24,1.6],["Гречка сухая",313,12.6,3.3,62],["Рис сухой",344,6.7,.7,78],["Овсяные хлопья сухие",342,12,6,60],["Хлеб ржаной",214,6.6,1.2,40],["Хлеб цельнозерновой",247,13,3.4,41],["Мёд",329,.8,0,81],["Сахар",399,0,0,100],["Печенье овсяное",437,6.5,14,71],["Арахис",551,26,45,10],["Грецкий орех",654,15,65,7],["Хумус",166,8,10,14],["Мороженое пломбир",227,3.2,15,20],["Кола",42,0,0,10.6],["Сок апельсиновый",45,.7,.2,10],["Борщ",49,1.1,2.4,5.1],["Картофель фри",312,3.8,15,41],["Чипсы",520,5.5,30,53]);
+DB.push(..."Слива|46|.7|.3|11;Абрикос|48|1.4|.4|11;Вишня|50|1|.3|12;Черешня|63|1.1|.2|16;Малина|52|1.2|.7|12;Черника|57|.7|.3|14;Чёрная смородина|63|1.4|.4|15;Киви|61|1.1|.5|15;Манго|60|.8|.4|15;Ананас|50|.5|.1|13;Мандарин|53|.8|.3|13;Лимон|29|1.1|.3|9;Грейпфрут|42|.8|.1|11;Гранат|83|1.7|1.2|19;Хурма|70|.6|.2|19;Дыня|34|.8|.2|8;Изюм|299|3.1|.5|79;Курага|241|3.4|.5|63;Финики|282|2.5|.4|75;Чернослив|240|2.2|.4|64;Капуста цветная|25|2|.3|5;Квашеная капуста|19|.9|.1|4;Шпинат|23|2.9|.4|3.6;Салат листовой|15|1.4|.2|2.9;Редис|16|.7|.1|3.4;Баклажан|25|1|.2|6;Тыква|26|1|.1|6.5;Сельдерей|14|.7|.2|3;Чеснок|149|6.4|.5|33;Картофель жареный|192|2.8|9|25;Картофель запечённый|93|2.5|.1|21;Кукуруза варёная|96|3.4|1.5|21;Зелёный горошек|81|5.4|.4|14;Фасоль варёная|127|8.7|.5|23;Чечевица варёная|116|9|.4|20;Нут варёный|164|8.9|2.6|27;Шампиньоны|22|3.1|.3|3.3;Оливки|115|.8|11|6;Солёные огурцы|11|.3|.2|2.3;Говядина варёная|254|26|16|0;Свиная вырезка запечённая|242|27|14|0;Фарш говяжий жареный|254|26|17|0;Ветчина|145|19|7|1;Бекон жареный|541|37|42|1.4;Куриное бедро запечённое|229|24|15|0;Говяжья печень|135|20|3.6|3.9;Баранина|294|25|21|0;Утка запечённая|337|19|28|0;Колбаса копчёная|450|24|40|2;Кролик|173|33|3.5|0;Сельдь солёная|217|18|16|0;Скумбрия|205|19|14|0;Форель|141|20|6|0;Минтай|72|16|.9|0;Камбала|70|13|1.5|0;Кальмар|92|16|1.4|3;Мидии|86|12|2.2|3.7;Красная икра|252|25|18|4;Крабовые палочки|95|8|1|13;Шпроты в масле|363|17|32|0;Сардины в масле|208|25|11|0;Молоко 3.2%|60|3.1|3.2|4.7;Молоко обезжиренное|34|3.4|.1|5;Кефир 2.5%|50|2.9|2.5|4;Ряженка 4%|67|2.9|4|4.2;Йогурт фруктовый|95|3.5|2.5|14;Сливки 10%|118|2.8|10|4.5;Творог обезжиренный|71|16|.6|1.3;Творог 9%|159|16|9|2;Сыр голландский|352|26|27|0;Плавленый сыр|300|16|24|3;Фета|264|14|21|4;Пармезан|392|36|28|3.2;Брынза|262|18|20|.4;Сгущёнка|328|7.2|8.5|56;Сметана 10%|116|3|10|3.2;Подсолнечное масло|899|0|99.9|0;Яйцо сырое|143|12.6|9.5|.7;Яичница|196|13.6|15|.8;Омлет|154|11|12|1.4;Яичный белок|52|11|.2|.7;Яичный желток|322|16|27|3.6;Перловка варёная|123|3.3|.4|28;Пшено варёное|119|3.5|1|23;Булгур варёный|83|3|.2|19;Кускус варёный|112|3.8|.2|23;Киноа варёная|120|4.4|1.9|21;Овсянка на молоке|102|3.2|4|13;Батон|262|7.5|2.9|51;Лаваш|275|9|1.2|56;Сухари|331|11|1.4|72;Крекер|430|9|14|69;Сдобная булочка|339|8|9|57;Круассан|406|8|21|46;Блины|233|6|12|28;Мюсли|352|10|6|66;Кукурузные хлопья|357|7|.4|84;Попкорн|375|12|4.5|74;Макароны сухие|350|12|1.5|71;Пшеничная мука|364|10|1|76;Горький шоколад|546|6|32|48;Шоколадные конфеты|480|4|24|63;Зефир|326|.8|0|78;Мармелад|321|.4|.1|79;Варенье|263|.3|.1|69;Халва|523|12|30|50;Пончик|421|5|23|49;Пиво|43|.5|0|3.6;Красное вино|85|.1|0|2.6;Водка|235|0|0|.1;Чёрный кофе|2|.1|0|0;Чай без сахара|1|0|0|.3;Яблочный сок|46|.1|.1|11;Томатный сок|17|.8|.1|3.5;Энергетик|45|0|0|11;Чизбургер|303|15|13|30;Шаурма|220|10|12|18;Хот-дог|290|10|17|23;Суши|140|5|1|28;Плов|190|7|8|22;Куриный суп с лапшой|40|3|1.4|4;Салат Оливье|198|5|16|8;Греческий салат|100|3|8|4;Лазанья|135|7|6|14;Вареники с картошкой|190|5|4|32;Фундук|628|15|61|17;Кешью|553|18|44|30;Фисташки|560|20|45|28;Семечки подсолнечника|584|21|52|20;Тыквенные семечки|559|30|49|11;Кунжут|573|18|50|23;Семена чиа|486|17|31|42;Арахисовая паста|588|25|50|20;Кокосовая стружка|660|7|65|24;Льняное семя|534|18|42|29;Соевый соус|53|8|0|5;Кетчуп|100|1|.1|25;Майонез|627|.5|67|3;Горчица|66|4|4|6;Тофу|76|8|4.8|1.9;Протеин сывороточный|390|78|5|8".split(";").map(s=>s.split("|")).map(a=>[a[0],+a[1],+a[2],+a[3],+a[4]]).filter(a=>!DB.some(x=>x[0].toLowerCase()===a[0].toLowerCase())));
+const MEALS=["Завтрак","Обед","Ужин","Перекус"];
+const $=id=>document.getElementById(id);
+const today=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")})();
+let S={goal:2000,days:{}},meal=0,cur=null;
+try{const r=localStorage.getItem("kcal-app");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const TG=window.Telegram&&Telegram.WebApp,CS=TG&&TG.initData&&TG.isVersionAtLeast("6.9")?TG.CloudStorage:null;
+let cloudReady=false,tmr;
+const fit=a=>{while(a.length>1&&JSON.stringify(a).length>4000)a.shift();return a};
+const r1=v=>Math.round(v*10)/10;
+function cloudPush(){
+  if(!cloudReady)return;
+  CS.setItem("cfg",JSON.stringify({goal:S.goal,prof:S.prof||{}}));
+  CS.setItem("cust",JSON.stringify(fit((S.custom||[]).map(f=>[f[0],f[1]]))));
+  CS.setItem("d_"+today,JSON.stringify(fit((S.days[today]||[]).map(x=>[x.id,x.meal,x.name,r1(x.g),r1(x.k),r1(x.p),r1(x.f),r1(x.c)]))));
+}
+const save=()=>{try{localStorage.setItem("kcal-app",JSON.stringify(S))}catch(e){}if(CS){clearTimeout(tmr);tmr=setTimeout(cloudPush,400)}};
+const day=()=>S.days[today]||(S.days[today]=[]);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n=v=>Math.round(v).toLocaleString("ru-RU");
+
+$("date").textContent=new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+(S.custom||[]).forEach(f=>{if(!DB.some(x=>x[0].toLowerCase()===f[0].toLowerCase()))DB.push(f)});
+const fillList=()=>{$("foods").innerHTML=DB.map(f=>`<option value="${esc(f[0])}">`).join("")};fillList();
+$("goal").value=S.goal;
+$("seg").innerHTML=MEALS.map((m,i)=>`<button data-m="${i}" aria-pressed="${i==meal}">${m}</button>`).join("");
+
+function calc(){
+  const g=parseFloat($("grams").value),k=parseFloat($("k100").value);
+  $("calc").textContent=(g>0&&k>=0)?`≈ ${n(g*k/100)} ккал`:"";
+}
+$("name").addEventListener("input",()=>{
+  const f=DB.find(x=>x[0].toLowerCase()===$("name").value.trim().toLowerCase());
+  cur=f||null;
+  if(f){$("k100").value=f[1];if(!$("grams").value)$("grams").value=100}
+  calc();
+});
+$("grams").addEventListener("input",calc);
+$("k100").addEventListener("input",()=>{cur=null;calc()});
+$("seg").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  meal=+b.dataset.m;
+  [...$("seg").children].forEach((x,i)=>x.setAttribute("aria-pressed",i==meal));
+});
+$("goal").addEventListener("change",()=>{
+  const v=parseInt($("goal").value);
+  if(v>=500){S.goal=v;save();render()}else $("goal").value=S.goal;
+});
+$("addBtn").addEventListener("click",()=>{
+  const name=$("name").value.trim(),g=parseFloat($("grams").value),k=parseFloat($("k100").value);
+  if(!name||!(g>0)||!(k>=0)){$("calc").textContent="Укажите продукт, вес и калорийность на 100 г.";return}
+  const r=g/100;
+  if(!cur&&!DB.some(x=>x[0].toLowerCase()===name.toLowerCase())){const nf=[name,k,0,0,0];DB.push(nf);(S.custom=S.custom||[]).push(nf);fillList()}
+  day().push({id:Date.now(),meal,name,g,k:k*r,p:cur?cur[2]*r:0,f:cur?cur[3]*r:0,c:cur?cur[4]*r:0});
+  save();
+  ["name","grams","k100"].forEach(i=>$(i).value="");cur=null;$("calc").textContent="";
+  render();
+});
+$("log").addEventListener("click",e=>{
+  const b=e.target.closest(".del");if(!b)return;
+  S.days[today]=day().filter(x=>x.id!=b.dataset.id);save();render();
+});
+$("reset").addEventListener("click",()=>{
+  if(!day().length)return;
+  const go=()=>{S.days[today]=[];save();render()};
+  if(TG&&TG.initData&&TG.isVersionAtLeast("6.2"))TG.showConfirm("Удалить все записи за сегодня?",ok=>{if(ok)go()});
+  else if(confirm("Удалить все записи за сегодня?"))go();
+});
+
+function render(){
+  const d=day(),sum=k=>d.reduce((a,x)=>a+x[k],0),tot=sum("k"),left=S.goal-tot,over=left<0;
+  $("rem").textContent=n(Math.abs(left));
+  $("rem").className="big"+(over?" over":"");
+  $("remlbl").textContent=over?"ккал сверх цели":"ккал осталось";
+  $("bar").className="bar"+(over?" over":"");
+  $("fill").style.width=Math.min(100,tot/S.goal*100)+"%";
+  $("eaten").textContent=`Съедено ${n(tot)} из ${n(S.goal)} ккал`;
+  $("mp").textContent=n(sum("p"));$("mf").textContent=n(sum("f"));$("mc").textContent=n(sum("c"));
+  if(!d.length){$("log").innerHTML='<p class="empty">Пока пусто. Добавьте первый приём пищи выше.</p>';return}
+  $("log").innerHTML=MEALS.map((m,i)=>{
+    const it=d.filter(x=>x.meal===i);if(!it.length)return"";
+    return `<div class="meal"><h3>${m}<span>${n(it.reduce((a,x)=>a+x.k,0))} ккал</span></h3>`+
+      it.map(x=>`<div class="item"><div><b>${esc(x.name)}</b><small>${n(x.g)} г</small></div><em>${n(x.k)}</em><button class="del" data-id="${x.id}" aria-label="Удалить ${esc(x.name)}">×</button></div>`).join("")+`</div>`;
+  }).join("");
+}
+const FORMULAS=[
+ ["Миффлин — Сан-Жеор",p=>10*p.w+6.25*p.h-5*p.a+(p.m?5:-161)],
+ ["Харрис — Бенедикт",p=>p.m?88.362+13.397*p.w+4.799*p.h-5.677*p.a:447.593+9.247*p.w+3.098*p.h-4.33*p.a],
+ ["ВОЗ (Шофилд)",p=>p.a<30?(p.m?15.057*p.w+692.2:14.818*p.w+486.6):p.a<60?(p.m?11.472*p.w+873.1:8.126*p.w+845.6):(p.m?11.711*p.w+587.7:9.082*p.w+658.5)],
+ ["Кэтч — Макардл",p=>p.bf>0?370+21.6*p.w*(1-p.bf/100):null]
+];
+const PF=["sex","age","hh","ww","bf","act","gl"];
+let targets=[];
+const loadProf=()=>{try{const pr=S.prof||{};PF.forEach(i=>{if(pr[i]!==undefined)$(i).value=pr[i]})}catch(e){}};loadProf();
+function bodyCalc(){
+  S.prof={};PF.forEach(i=>S.prof[i]=$(i).value);save();
+  const p={m:$("sex").value==="m",a:parseFloat($("age").value),h:parseFloat($("hh").value),w:parseFloat($("ww").value),bf:parseFloat($("bf").value)};
+  const k=parseFloat($("act").value)*parseFloat($("gl").value);
+  if(!(p.a>=18&&p.a<=90&&p.h>=120&&p.w>=35)){$("fres").innerHTML='<p class="note">Заполните возраст, рост и вес — результаты появятся здесь.</p>';return}
+  targets=[];
+  $("fres").innerHTML=FORMULAS.map(([name,fn],i)=>{
+    const bmr=fn(p);
+    if(bmr===null)return`<div class="fb" style="opacity:.6;cursor:default"><span>${name}<small>укажите процент жира</small></span><b>—</b></div>`;
+    const t=Math.max(1200,Math.round(bmr*k/10)*10);targets[i]=t;
+    return`<button class="fb" data-i="${i}"><span>${name}<small>основной обмен ${n(bmr)} · с активностью ${n(bmr*parseFloat($("act").value))}</small></span><b>${n(t)}</b></button>`;
+  }).join("");
+}
+PF.forEach(i=>$(i).addEventListener("input",bodyCalc));
+$("fres").addEventListener("click",e=>{
+  const b=e.target.closest(".fb[data-i]");if(!b)return;
+  S.goal=targets[+b.dataset.i];$("goal").value=S.goal;save();render();
+  const old=$("fres").querySelector(".done");if(old)old.remove();
+  $("fres").insertAdjacentHTML("beforeend",`<p class="note done">Цель обновлена: ${n(S.goal)} ккал в день.</p>`);
+});
+function tgTheme(){
+  const t=TG.themeParams,r=document.documentElement.style,set=(k,v)=>{if(v)r.setProperty(k,v)};
+  set("--bg",t.secondary_bg_color);set("--card",t.bg_color);set("--ink",t.text_color);
+  set("--mute",t.hint_color);set("--acc",t.button_color);set("--onacc",t.button_text_color);
+  r.setProperty("--line","color-mix(in srgb,var(--mute) 28%,transparent)");
+  r.setProperty("--accsoft","color-mix(in srgb,var(--acc) 20%,var(--card))");
+}
+if(TG&&TG.initData){
+  TG.ready();TG.expand();tgTheme();TG.onEvent("themeChanged",tgTheme);
+  try{TG.setHeaderColor("secondary_bg_color")}catch(e){}
+}
+function cloudLoad(){
+  const key="d_"+today;
+  CS.getItems(["cfg","cust",key],(err,v)=>{
+    if(err||!v)return;
+    try{
+      if(v.cfg){const c=JSON.parse(v.cfg);S.goal=c.goal||S.goal;S.prof=c.prof||S.prof}
+      if(v.cust)JSON.parse(v.cust).forEach(([name,k])=>{
+        if(!DB.some(x=>x[0].toLowerCase()===name.toLowerCase())){const f=[name,k,0,0,0];DB.push(f);(S.custom=S.custom||[]).push(f)}
+      });
+      if(v[key])S.days[today]=JSON.parse(v[key]).map(a=>({id:a[0],meal:a[1],name:a[2],g:a[3],k:a[4],p:a[5],f:a[6],c:a[7]}));
+    }catch(e){return}
+    $("goal").value=S.goal;loadProf();fillList();bodyCalc();render();
+    cloudReady=true;cloudPush();
+    const cut=new Date(Date.now()-45*864e5).toLocaleDateString("sv-SE");
+    CS.getKeys((e2,ks)=>{const old=(ks||[]).filter(k=>k.startsWith("d_")&&k.slice(2)<cut);if(old.length)CS.removeItems(old)});
+  });
+}
+if(CS)cloudLoad();
+bodyCalc();
+render();
+</script>
+</body>
+</html>
